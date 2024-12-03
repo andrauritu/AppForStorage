@@ -1,10 +1,10 @@
 package com.example.appforstorage
 
+import android.content.Context
 import android.os.Bundle
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
 import com.example.appforstorage.com.example.appforstorage.AppDatabase
-import com.example.appforstorage.com.example.appforstorage.Student
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -17,26 +17,34 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        // Find the TextView where we'll display student data
         val displayTextView: TextView = findViewById(R.id.displayTextView)
 
         // Initialize the database
         db = AppDatabase.getDatabase(this)
 
         CoroutineScope(Dispatchers.IO).launch {
-            db.studentDao().insertAll(
-                Student(name = "Alice", year = "Sophomore", meanGrade = 8.5f),
-                Student(name = "Bob", year = "Junior", meanGrade = 9.2f)
-            )
-
+            // Fetch students from the database
             val students = db.studentDao().getAll()
 
+            // Sort students alphabetically by name
+            val sortedStudents = students.sortedBy { it.name }
+
+            // Convert sorted students to a string
+            val studentData = sortedStudents.joinToString(separator = "\n") { it.name }
+
+            // Write to a file in internal storage
+            writeToFile("students_list.txt", studentData)
+
+            // Update UI to indicate completion
             runOnUiThread {
-                val displayText = students.joinToString("\n") { student ->
-                    "Name: ${student.name}, Year: ${student.year}, Mean Grade: ${student.meanGrade}"
-                }
-                displayTextView.text = displayText
+                displayTextView.text = "File 'students_list.txt' written to internal storage."
             }
+        }
+    }
+
+    private fun writeToFile(fileName: String, data: String) {
+        openFileOutput(fileName, Context.MODE_PRIVATE).use { output ->
+            output.write(data.toByteArray())
         }
     }
 }

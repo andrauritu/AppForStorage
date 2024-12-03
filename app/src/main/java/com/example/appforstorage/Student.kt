@@ -5,7 +5,7 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "student")
 data class Student(
-    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    @PrimaryKey(autoGenerate = true) val id: Int = 0, // Auto-generated primary key
     @ColumnInfo(name = "name") val name: String,
     @ColumnInfo(name = "year") val year: String,
     @ColumnInfo(name = "mean_grade") val meanGrade: Float
