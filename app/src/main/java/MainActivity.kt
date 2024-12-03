@@ -1,37 +1,42 @@
 package com.example.appforstorage
 
-import android.content.SharedPreferences
 import android.os.Bundle
-import android.widget.ToggleButton
+import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
-import androidx.appcompat.app.AppCompatDelegate
+import com.example.appforstorage.com.example.appforstorage.AppDatabase
+import com.example.appforstorage.com.example.appforstorage.Student
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class MainActivity : AppCompatActivity() {
 
-    private lateinit var sharedPreferences: SharedPreferences
+    private lateinit var db: AppDatabase
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        sharedPreferences = getSharedPreferences("ThemePrefs", MODE_PRIVATE)
-
-        val isDarkMode = sharedPreferences.getBoolean("isDarkMode", false)
-        AppCompatDelegate.setDefaultNightMode(
-            if (isDarkMode) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
-        )
-
         setContentView(R.layout.activity_main)
 
-        val themeToggle: ToggleButton = findViewById(R.id.themeToggle)
+        // Find the TextView where we'll display student data
+        val displayTextView: TextView = findViewById(R.id.displayTextView)
 
-        themeToggle.isChecked = isDarkMode
+        // Initialize the database
+        db = AppDatabase.getDatabase(this)
 
-        themeToggle.setOnCheckedChangeListener { _, isChecked ->
-            sharedPreferences.edit().putBoolean("isDarkMode", isChecked).apply()
-
-            AppCompatDelegate.setDefaultNightMode(
-                if (isChecked) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
+        CoroutineScope(Dispatchers.IO).launch {
+            db.studentDao().insertAll(
+                Student(name = "Alice", year = "Sophomore", meanGrade = 8.5f),
+                Student(name = "Bob", year = "Junior", meanGrade = 9.2f)
             )
+
+            val students = db.studentDao().getAll()
+
+            runOnUiThread {
+                val displayText = students.joinToString("\n") { student ->
+                    "Name: ${student.name}, Year: ${student.year}, Mean Grade: ${student.meanGrade}"
+                }
+                displayTextView.text = displayText
+            }
         }
     }
 }
