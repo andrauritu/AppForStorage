@@ -8,40 +8,54 @@ import com.example.appforstorage.com.example.appforstorage.AppDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import android.content.SharedPreferences
+import androidx.appcompat.app.AppCompatDelegate
+import android.widget.ToggleButton
 
 import android.provider.MediaStore
 import android.content.ContentValues
 import android.os.Build
-
 class MainActivity : AppCompatActivity() {
 
     private lateinit var db: AppDatabase
+    private lateinit var sharedPreferences: SharedPreferences
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        sharedPreferences = getSharedPreferences("ThemePrefs", MODE_PRIVATE)
+
+        val isDarkMode = sharedPreferences.getBoolean("isDarkMode", false)
+        AppCompatDelegate.setDefaultNightMode(
+            if (isDarkMode) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
+        )
+
         setContentView(R.layout.activity_main)
 
-        val displayTextView: TextView = findViewById(R.id.displayTextView)
+        val themeToggle: ToggleButton = findViewById(R.id.themeToggle)
+        themeToggle.isChecked = isDarkMode
+        themeToggle.setOnCheckedChangeListener { _, isChecked ->
+            sharedPreferences.edit().putBoolean("isDarkMode", isChecked).apply()
 
-        // Initialize the database
+            AppCompatDelegate.setDefaultNightMode(
+                if (isChecked) AppCompatDelegate.MODE_NIGHT_YES else AppCompatDelegate.MODE_NIGHT_NO
+            )
+        }
+
         db = AppDatabase.getDatabase(this)
 
+        val displayTextView: TextView = findViewById(R.id.displayTextView)
         CoroutineScope(Dispatchers.IO).launch {
-            // Fetch students from the database
             val students = db.studentDao().getAll()
 
-            // Sort students by MeanGrade
             val sortedStudents = students.sortedByDescending { it.meanGrade }
 
-            // Convert sorted students to a string
             val studentData = sortedStudents.joinToString(separator = "\n") {
                 "Name: ${it.name}, MeanGrade: ${it.meanGrade}"
             }
 
-            // Write to a file in shared storage
             writeToSharedStorage("students_sorted_by_grade.txt", studentData)
 
-            // Update UI to indicate completion
             runOnUiThread {
                 displayTextView.text = "File 'students_sorted_by_grade.txt' written to shared storage."
             }
@@ -54,7 +68,7 @@ class MainActivity : AppCompatActivity() {
             put(MediaStore.MediaColumns.DISPLAY_NAME, fileName)
             put(MediaStore.MediaColumns.MIME_TYPE, "text/plain")
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                put(MediaStore.MediaColumns.RELATIVE_PATH, "Documents/") // Save in Documents folder
+                put(MediaStore.MediaColumns.RELATIVE_PATH, "Documents/")
             }
         }
 
